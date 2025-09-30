@@ -58,10 +58,13 @@ class QueueJobChannel(models.Model):
             for vals in vals_list:
                 name = vals.get("name")
                 parent_id = vals.get("parent_id")
-                if name and parent_id:
-                    existing = self.search(
-                        [("name", "=", name), ("parent_id", "=", parent_id)]
-                    )
+                if name:
+                    domain = [("name", "=", name)]
+                    if parent_id:
+                        domain.append(("parent_id", "=", parent_id))
+                    else:
+                        domain.append(("parent_id", "=", False))
+                    existing = self.search(domain, limit=1)
                     if existing:
                         if not existing.get_metadata()[0].get("noupdate"):
                             existing.write(vals)
