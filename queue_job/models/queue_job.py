@@ -6,6 +6,7 @@ import random
 from datetime import datetime, timedelta
 
 from odoo import _, api, exceptions, fields, models
+from odoo.fields import Domain
 from odoo.tools import config, html_escape, index_exists
 
 from odoo.addons.base_sparse_field.models.fields import Serialized
@@ -343,11 +344,9 @@ class QueueJob(models.Model):
     def requeue_stuck_jobs(self, max_age_minutes=60):
         """Requeue jobs stuck in *enqueued* or *started* state."""
         threshold = fields.Datetime.subtract(fields.Datetime.now(), minutes=max_age_minutes)
-        domain = expression.OR(
-            [
-                [('state', '=', ENQUEUED), ('date_enqueued', '<', threshold)],
-                [('state', '=', STARTED), ('date_started', '<', threshold)],
-            ]
+        domain = Domain.OR(
+            [('state', '=', ENQUEUED), ('date_enqueued', '<', threshold)],
+            [('state', '=', STARTED), ('date_started', '<', threshold)],
         )
         stuck_jobs = self.search(domain)
         if not stuck_jobs:
