@@ -2,7 +2,9 @@
 # Copyright 2016 Camptocamp SA
 # License LGPL-3.0 or later (http://www.gnu.org/licenses/lgpl.html)
 
+import configparser
 import logging
+import os
 from threading import Thread
 import time
 
@@ -17,7 +19,22 @@ try:
     else:
         queue_job_config = {}
 except ImportError:
-    queue_job_config = config.misc.get("queue_job", {})
+    # Odoo 19 removed the old config.misc helper; fall back to reading the
+    # configuration section directly from the rc file when available.
+    queue_job_config = {}
+    try:
+        queue_job_config = config.misc.get("queue_job", {})
+    except AttributeError:
+        config_path = config.get("config")
+        if config_path:
+            parser = configparser.ConfigParser()
+            try:
+                with open(os.path.expanduser(config_path), encoding="utf-8") as cfg:
+                    parser.read_file(cfg)
+                if parser.has_section("queue_job"):
+                    queue_job_config = dict(parser.items("queue_job"))
+            except FileNotFoundError:
+                queue_job_config = {}
 
 
 from .runner import QueueJobRunner, _channels
