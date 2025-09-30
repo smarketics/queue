@@ -16,6 +16,7 @@ from ..fields import JobSerialized
 from ..job import (
     CANCELLED,
     DONE,
+    ENQUEUED,
     FAILED,
     PENDING,
     STARTED,
@@ -337,6 +338,24 @@ class QueueJob(models.Model):
         jobs_to_requeue = self.filtered(lambda job_: job_.state != WAIT_DEPENDENCIES)
         jobs_to_requeue._change_job_state(PENDING)
         return True
+
+    @api.model
+    def requeue_stuck_jobs(self, max_age_minutes=60):
+        """Requeue jobs stuck in *enqueued* or *started* state."""
+        threshold = fields.Datetime.subtract(fields.Datetime.now(), minutes=max_age_minutes)
+        domain = expression.OR(
+            [
+                [('state', '=', ENQUEUED), ('date_enqueued', '<', threshold)],
+                [('state', '=', STARTED), ('date_started', '<', threshold)],
+            ]
+        )
+        stuck_jobs = self.search(domain)
+        if not stuck_jobs:
+            return 0
+
+        _logger.info("Requeuing %s stuck jobs older than %s", len(stuck_jobs), threshold)
+        stuck_jobs.requeue()
+        return len(stuck_jobs)
 
     def _message_post_on_failure(self):
         # subscribe the users now to avoid to subscribe them
