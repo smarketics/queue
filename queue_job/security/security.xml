@@ -16,7 +16,7 @@
             <field name="name">Job Queue Manager</field>
             <field name="privilege_id" ref="res_groups_privilege_queue_job" />
             <field
-                name="users"
+                name="user_ids"
                 eval="[(4, ref('base.user_root')), (4, ref('base.user_admin'))]"
             />
         </record>
