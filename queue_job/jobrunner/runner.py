@@ -473,7 +473,12 @@ class QueueJobRunner:
 
     def get_db_names(self):
         if config["db_name"]:
-            db_names = config["db_name"].split(",")
+            db_name = config["db_name"]
+            # Odoo's config parser stores db_name as a list once parsed from
+            # the config file/CLI, not as a raw comma-separated string -- only
+            # split() if we were actually handed a string (e.g. called
+            # programmatically with the raw value).
+            db_names = db_name if isinstance(db_name, list) else db_name.split(",")
         else:
             db_names = odoo.service.db.list_dbs(True)
         return db_names
